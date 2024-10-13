@@ -3,7 +3,7 @@
 ## Description
 Crawling Data Twitter is a sentiment analysis project that collects and analyzes tweets using Python. It leverages natural language processing techniques to predict sentiment from user-generated content.
 
-<img src="logo-white.png" alt="Twitter Logo" width="200" />
+<img src="asset/logo-white.png" alt="Twitter Logo" width="200" />
 
 ## Features
 - 🌐 Collects tweets based on specific keywords.
