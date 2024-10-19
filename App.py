@@ -167,7 +167,9 @@ elif page == "Visualisasi Data":
 
 # Page 3: CSV Upload
 elif page == "Upload CSV":
-    st.title("Upload CSV")
+    st.title("Upload dan Proses CSV")
+    st.write("Bersihkan hasil crawling data twitter mu dengan upload file csv mu disini!")
+    st.write("Note: File CSV harus mengandung kolom 'full_text'.")
     uploaded_file = st.file_uploader("Pilih file CSV", type=["csv"])
     
     if uploaded_file is not None:
