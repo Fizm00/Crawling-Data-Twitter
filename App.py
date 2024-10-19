@@ -11,6 +11,8 @@ from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from wordcloud import WordCloud
 import seaborn as sns
 from collections import Counter
+from tqdm import tqdm
+import time
 
 # Load models and feature extraction
 feature_bow = pickle.load(open("model/feature-bow.p", 'rb'))
@@ -68,12 +70,28 @@ def cleansing_with_stemming(string):
     
     return string
 
+# Modified process_csv with tqdm and progress bar
 def process_csv(file):
     data = pd.read_csv(file)
     if 'full_text' in data.columns:
         data = data.rename(columns={'full_text': 'Tweet'})
-        data['Tweet_clean'] = data['Tweet'].apply(cleansing_with_stemming)
-        data['predicted_sentiment'] = data['Tweet_clean'].apply(lambda x: predict_sentiment(x)[0])
+        data['Tweet_clean'] = ''
+        data['predicted_sentiment'] = ''
+        
+        # Show progress bar using st.progress and tqdm for progress visualization
+        progress_bar = st.progress(0)
+        for i, tweet in tqdm(enumerate(data['Tweet']), total=len(data['Tweet'])):
+            cleaned_tweet = cleansing_with_stemming(tweet)
+            sentiment_nb, _ = predict_sentiment(cleaned_tweet)
+            data.at[i, 'Tweet_clean'] = cleaned_tweet
+            data.at[i, 'predicted_sentiment'] = sentiment_nb
+
+            # Update Streamlit progress bar
+            progress_bar.progress((i + 1) / len(data))
+
+            # Simulate processing time
+            time.sleep(0.1)  # You can adjust or remove this if not necessary
+        
         return data[['Tweet', 'Tweet_clean', 'predicted_sentiment']]
     else:
         return None
@@ -140,32 +158,25 @@ elif page == "Visualisasi Data":
     # Word Cloud
     st.header("Word Cloud dari Tweet")
     if st.button("Tampilkan Word Cloud"):
-        st.write("Menampilkan Word Cloud dari tweet yang telah diproses:")
-        generate_word_cloud(data['Tweet_clean'])
+        generate_word_cloud(document)
 
-    # Bar Chart - Most Common Words
-    st.header("Top 10 Kata yang Paling Sering Muncul")
-    if st.button("Tampilkan Kata Paling Sering"):
-        st.write("Menampilkan kata yang paling sering muncul dalam tweet:")
-        plot_most_common_words(data['Tweet_clean'], num_words=10)
-        
-    # Clustering Visualization
+    # Most Common Words
+    st.header("Most Common Words")
+    if st.button("Tampilkan 10 Kata Paling Sering"):
+        plot_most_common_words(document)
 
-    st.header("Data Tweet yang Sudah Dikelompokkan")
-    st.dataframe(data[['Tweet', 'Tweet_clean', 'predicted_sentiment']])
-
-# Page 3: Upload CSV and Process
+# Page 3: CSV Upload
 elif page == "Upload CSV":
-    st.title("Upload dan Proses CSV")
-    st.write("Bersihkan hasil crawling data twitter mu dengan upload file csv mu disini!")
-    st.write("Note: File CSV harus mengandung kolom 'full_text'.")
-    uploaded_file = st.file_uploader("Unggah file CSV", type="csv")
+    st.title("Upload CSV")
+    uploaded_file = st.file_uploader("Pilih file CSV", type=["csv"])
+    
     if uploaded_file is not None:
-        st.write("File telah diunggah. Klik tombol di bawah untuk memproses.")
-        if st.button("Process"):
-            processed_data = process_csv(uploaded_file)
-            if processed_data is not None:
-                st.write("Data setelah proses cleaning dan prediksi sentimen:")
-                st.dataframe(processed_data)
-            else:
-                st.error("The uploaded file does not contain a 'full_text' column.")
+        st.write("File berhasil diupload, sedang memproses...")
+        processed_data = process_csv(uploaded_file)
+        if processed_data is not None:
+            st.write("Data yang telah diproses:")
+            st.dataframe(processed_data.head())
+            processed_data.to_csv("processed_data.csv", index=False)
+            st.download_button("Unduh CSV yang telah diproses", data=processed_data.to_csv(index=False), file_name="processed_data.csv", mime="text/csv")
+        else:
+            st.error("File CSV tidak sesuai format, kolom 'full_text' tidak ditemukan.")
